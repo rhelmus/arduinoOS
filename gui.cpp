@@ -1,6 +1,7 @@
 #include <SPI.h>
 #include <GD.h>
 
+#include "j1firmware/bg.h"
 #include "gfx.h"
 #include "gui.h"
 #include "usbmouse.h"
@@ -118,6 +119,18 @@ void CGUI::initGD()
 
     GD.copy(PALETTE4A, mouseArrowPal, sizeof(mouseArrowPal));
     GD.copy(RAM_SPRIMG, mouseArrowImg, sizeof(mouseArrowImg));
+
+    GD.wr16(COMM+0, RGB(200, 200, 200)); // background top bar
+
+    // Desktop gradient
+    for (uint8_t i=2; i<40; i+=2)
+    {
+        GD.wr16(COMM+i, RGB(50-i, 100-i, 255-i));
+    }
+
+//    GD.wr16(COMM+4, RGB(0, 0, 255));
+
+    GD.microcode(bg_code, sizeof(bg_code));
 }
 
 void CGUI::redrawWindows()
@@ -236,18 +249,16 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
     if (dragWindow)
     {
+        uint8_t newx = convertPxToChar(mouseX) + winDragXOffset;
+        uint8_t newy = convertPxToChar(mouseY);
         const CWindow::SDimensions dim(topWindow->getDimensions());
-        const uint8_t newx = dim.x + convertPxToChar(mouseX - dragMouseX);
-        const uint8_t newy = dim.y + convertPxToChar(mouseY - dragMouseY);
 
-        if ((newx != dim.x) || (newy != dim.y))
-        {
-            setWindowPos(topWindow, newx, newy);
-            dragMouseX = mouseX;
-            dragMouseY = mouseY;
-        }
-        /*setWindowPos(topWindow, convertPxToChar(mouseX),
-                     convertPxToChar(mouseY));*/
+        if ((newx + dim.w) >= 50)
+            newx = dim.x;
+        if ((newy + dim.h) >= 37)
+            newy = dim.y;
+
+        setWindowPos(topWindow, newx, newy);
     }
 }
 
@@ -289,8 +300,7 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
             if (chy == topWindow->getDimensions().y) // Clicked at window top?
             {
                 dragWindow = true;
-                dragMouseX = mouseX;
-                dragMouseY = mouseY;
+                winDragXOffset = topWindow->getDimensions().x - convertPxToChar(mouseX);
             }
         }
     }

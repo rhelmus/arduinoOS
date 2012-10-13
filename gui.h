@@ -43,7 +43,7 @@ class CGUI
     EMouseButtonState mouseButtonStates[BUTTON_MAX];
     CWindow *bottomWindow, *topWindow;
     bool dragWindow;
-    uint16_t dragMouseX, dragMouseY;
+    uint8_t winDragXOffset;
 
     void initGD(void);
     void redrawWindows(void);
