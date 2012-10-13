@@ -16,9 +16,9 @@ CWindow w2(10, 10, 10, 10);
 CWindow w3(30, 25, 20, 10);
 CWindow w4(5, 25, 25, 5);
 
-bool inWindow(CWindow *topw, uint8_t x, uint8_t y)
+CWindow *getTopWindowFromPos(CWindow *botw, uint8_t x, uint8_t y)
 {
-    CWindow *w = topw;
+    CWindow *w = botw, *ret = 0;
 
     while (w)
     {
@@ -26,17 +26,17 @@ bool inWindow(CWindow *topw, uint8_t x, uint8_t y)
 
         if ((x >= dim.x) && (x <= (dim.x + dim.w)) &&
             (y >= dim.y) && (y <= (dim.y + dim.h)))
-            return true;
+            ret = w;
 
         w = w->nextWindow();
     }
 
-    return false;
+    return ret;
 }
 
-int8_t getClosestHorizBorder(CWindow *topw, uint8_t col, uint8_t row)
+int8_t getClosestHorizBorder(CWindow *botw, uint8_t col, uint8_t row)
 {
-    CWindow *w = topw;
+    CWindow *w = botw;
     int8_t ret = -1;
 
     while (w)
@@ -110,7 +110,8 @@ void CGUI::initGD()
 
     GD.wr16(RAM_PAL + (CHAR_BACKGROUND * 8), RGB(0, 0, 255));
     GD.wr16(RAM_PAL + (CHAR_TRANSPARENT * 8), TRANSPARENT);
-    GD.wr16(RAM_PAL + (CHAR_WINDOW_TOP * 8), RGB(0, 255, 0));
+    GD.wr16(RAM_PAL + (CHAR_WINDOW_TOP_INACTIVE * 8), RGB(180, 180, 180));
+    GD.wr16(RAM_PAL + (CHAR_WINDOW_TOP_ACTIVE * 8), RGB(0, 255, 0));
 
     GD.copy(RAM_CHR + (CHAR_BORDER_VERT_LEFT * 16), borderChars, sizeof(borderChars));
     GD.copy(RAM_PAL + (CHAR_BORDER_VERT_LEFT * 8), borderPal, sizeof(borderPal));
@@ -119,12 +120,9 @@ void CGUI::initGD()
     GD.copy(RAM_SPRIMG, mouseArrowImg, sizeof(mouseArrowImg));
 }
 
-void CGUI::redrawScreen()
+void CGUI::redrawWindows()
 {
-    // clear screen
-    GD.fill(RAM_PIC, CHAR_BACKGROUND, 4096);
-
-    CWindow *wit = topWindow;
+    CWindow *wit = bottomWindow;
     while (wit)
     {
         wit->draw();
@@ -151,9 +149,9 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
     {
         int8_t startcol = olddim.x;
 
-        while (inWindow(topWindow, startcol, line))
+        while (getTopWindowFromPos(bottomWindow, startcol, line) != 0)
         {
-            const int8_t b = getClosestHorizBorder(topWindow, startcol, line);
+            const int8_t b = getClosestHorizBorder(bottomWindow, startcol, line);
             if (b == -1)
             {
                 ++startcol;
@@ -165,7 +163,7 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
 
         while ((startcol != -1) && (startcol <= wright))
         {
-            int8_t endcol = getClosestHorizBorder(topWindow, startcol+1, line);
+            int8_t endcol = getClosestHorizBorder(bottomWindow, startcol+1, line);
             if (endcol == -1)
                 endcol = wright + 1;
             /*Serial.print("start/endcol/x/right/line/y: "); Serial.print(startcol, DEC);
@@ -175,14 +173,14 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
             Serial.print(", "); Serial.print(line, DEC);
             Serial.print(", "); Serial.println(olddim.y, DEC);*/
             GD.fill(atxy(startcol, line), CHAR_BACKGROUND, (endcol - startcol));
-            startcol = getClosestHorizBorder(topWindow, endcol + 1, line);
+            startcol = getClosestHorizBorder(bottomWindow, endcol + 1, line);
             if (startcol == -1)
                 break;
             ++startcol;
 
-            while (inWindow(topWindow, startcol, line))
+            while (getTopWindowFromPos(bottomWindow, startcol, line) != 0)
             {
-                startcol = getClosestHorizBorder(topWindow, startcol, line);
+                startcol = getClosestHorizBorder(bottomWindow, startcol, line);
                 if (startcol == -1)
                     break;
                 ++startcol;
@@ -190,15 +188,7 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
         }
     }
 
-    CWindow *wit = topWindow->nextWindow();
-
-    while (wit)
-    {
-        wit->draw();
-        wit = wit->nextWindow();
-    }
-
-    topWindow->draw();
+    redrawWindows();
 }
 
 void CGUI::init()
@@ -206,11 +196,11 @@ void CGUI::init()
     initGD();
 
     memset(mouseButtonStates, BUTTON_UP, sizeof(mouseButtonStates));
-
     mouseX = 200;
     mouseY = 150;
-    drawMouse();
+    dragWindow = false;
 
+    drawMouse();
     setUSBMouseParser(&mouseParser);
 
     addWindow(&window);
@@ -218,19 +208,20 @@ void CGUI::init()
     addWindow(&w3);
     addWindow(&w4);
 
-    redrawScreen();
+    GD.fill(RAM_PIC, CHAR_BACKGROUND, 4096); // clear screen
+    redrawWindows();
 }
 
 void CGUI::addWindow(CWindow *w)
 {
-    if (!topWindow)
-        topWindow = w;
+    if (!bottomWindow)
+        bottomWindow = topWindow = w;
     else
     {
-        CWindow *wit = topWindow;
-        while (wit->nextWindow())
-            wit = wit->nextWindow();
-        wit->setNextWindow(w);
+        topWindow->setNextWindow(w);
+        topWindow->setActive(false);
+        w->setActive(true);
+        topWindow = w;
     }
 }
 
@@ -243,13 +234,66 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
     drawMouse();
 
-    if (mouseButtonStates[BUTTON_LEFT] == BUTTON_DOWN)
+    if (dragWindow)
     {
-        setWindowPos(&window, convertPxToChar(mouseX), convertPxToChar(mouseY));
+        const CWindow::SDimensions dim(topWindow->getDimensions());
+        const uint8_t newx = dim.x + convertPxToChar(mouseX - dragMouseX);
+        const uint8_t newy = dim.y + convertPxToChar(mouseY - dragMouseY);
+
+        if ((newx != dim.x) || (newy != dim.y))
+        {
+            setWindowPos(topWindow, newx, newy);
+            dragMouseX = mouseX;
+            dragMouseY = mouseY;
+        }
+        /*setWindowPos(topWindow, convertPxToChar(mouseX),
+                     convertPxToChar(mouseY));*/
     }
 }
 
 void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
 {
     mouseButtonStates[button] = state;
+
+    if ((button == BUTTON_LEFT) && (state == BUTTON_DOWN))
+    {
+        const uint8_t chx = convertPxToChar(mouseX);
+        const uint8_t chy = convertPxToChar(mouseY);
+        CWindow *w = getTopWindowFromPos(bottomWindow, chx, chy);
+
+        if (w)
+        {
+            if (w != topWindow)
+            {
+                if (w != bottomWindow)
+                {
+                    // Find old previous window
+                    CWindow *oldpw = bottomWindow;
+                    while (oldpw->nextWindow() != w)
+                        oldpw = oldpw->nextWindow();
+                    oldpw->setNextWindow(w->nextWindow()); // Unlink
+                }
+                else
+                    bottomWindow = bottomWindow->nextWindow();
+
+                w->setActive(true);
+                topWindow->setActive(false);
+
+                topWindow->setNextWindow(w);
+                w->setNextWindow(0);
+                topWindow = w;
+
+                redrawWindows();
+            }
+
+            if (chy == topWindow->getDimensions().y) // Clicked at window top?
+            {
+                dragWindow = true;
+                dragMouseX = mouseX;
+                dragMouseY = mouseY;
+            }
+        }
+    }
+    else if (dragWindow)
+        dragWindow = false;
 }

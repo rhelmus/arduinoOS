@@ -10,7 +10,8 @@ enum
     CHAR_BACKGROUND=0,
     CHAR_TRANSPARENT,
 
-    CHAR_WINDOW_TOP,
+    CHAR_WINDOW_TOP_INACTIVE,
+    CHAR_WINDOW_TOP_ACTIVE,
 
     CHAR_BORDER_VERT_LEFT=128, // Start after fonts
     CHAR_BORDER_VERT_RIGHT,
@@ -40,10 +41,12 @@ class CGUI
     CUSBMouseParser mouseParser;
     uint16_t mouseX, mouseY;
     EMouseButtonState mouseButtonStates[BUTTON_MAX];
-    CWindow *topWindow;
+    CWindow *bottomWindow, *topWindow;
+    bool dragWindow;
+    uint16_t dragMouseX, dragMouseY;
 
     void initGD(void);
-    void redrawScreen(void);
+    void redrawWindows(void);
     void drawMouse(void);
     void setWindowPos(CWindow *w, uint16_t x, uint16_t y);
 

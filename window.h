@@ -14,14 +14,17 @@ public:
 private:
     SDimensions dim;
     CWindow *next;
+    bool active;
 
     virtual void coreDraw(void) { } // UNDONE: make pure virtual
 
 public:
     // UNDONE: Make protected
-    CWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h) : dim(x, y, w, h), next(0) { }
+    CWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h) :
+        dim(x, y, w, h), next(0), active(false) { }
 
     void draw(void);
+    void setActive(bool a) { active = a; }
 
     void setPos(uint8_t x, uint8_t y) { dim.x = x; dim.y = y; }
     const SDimensions &getDimensions(void) const { return dim; }
