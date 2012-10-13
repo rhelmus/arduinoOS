@@ -128,8 +128,6 @@ void CGUI::initGD()
         GD.wr16(COMM+i, RGB(50-i, 100-i, 255-i));
     }
 
-//    GD.wr16(COMM+4, RGB(0, 0, 255));
-
     GD.microcode(bg_code, sizeof(bg_code));
 }
 
@@ -146,7 +144,8 @@ void CGUI::redrawWindows()
 void CGUI::drawMouse()
 {
     GD.__wstartspr(0);
-    draw_mouseArrow(mouseX, mouseY, 0, 0);
+    // Slight offset for pointer not being in center
+    draw_mouseArrow(mouseX+2, mouseY+4, 0, 0);
     GD.__end();
 }
 
@@ -201,7 +200,23 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
         }
     }
 
+    // UNDONE
     redrawWindows();
+
+#if 0
+    CWindow *wit = bottomWindow;
+    while (wit)
+    {
+        const CWindow::SDimensions dim = wit->getDimensions();
+        if (((olddim.x >= dim.x) && (olddim.x <= (dim.x + dim.w)) &&
+            (olddim.y >= dim.y) && (olddim.y <= (dim.y + dim.h))) ||
+           ((dim.x >= olddim.x) && (dim.x <= (olddim.x + olddim.w)) &&
+            (dim.y >= olddim.y) && (dim.y <= (olddim.y + olddim.h))))
+            wit->draw();
+
+        wit = wit->nextWindow();
+    }
+#endif
 }
 
 void CGUI::init()
@@ -255,7 +270,7 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
         if ((newx + dim.w) >= 50)
             newx = dim.x;
-        if ((newy + dim.h) >= 37)
+        if ((newy == 0) || (newy + dim.h) >= 37)
             newy = dim.y;
 
         setWindowPos(topWindow, newx, newy);
