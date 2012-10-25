@@ -24,7 +24,7 @@ set(FIRMWARE_NAME arduinoOS)
 
 set(${FIRMWARE_NAME}_BOARD uno)               # Arduino Target board
 # set(${FIRMWARE_NAME}_SKETCHES arduinorp6.ino)
-set(${FIRMWARE_NAME}_SRCS gui.cpp usbmouse.cpp utils.cpp window.cpp arduinoOS.cpp)  # Firmware sources
+set(${FIRMWARE_NAME}_SRCS gui.cpp desktoplauncher.cpp usbmouse.cpp utils.cpp window.cpp arduinoOS.cpp)  # Firmware sources
 set(${FIRMWARE_NAME}_PORT /dev/ttyACM0)            # Serial upload port
 
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/../libraries)

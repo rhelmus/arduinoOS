@@ -10,3 +10,6 @@ window.cpp
 utils.cpp
 utils.h
 j1firmware/bg.fs
+desktoplauncher.h
+desktoplauncher.cpp
+widget.h

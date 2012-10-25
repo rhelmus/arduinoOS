@@ -3,6 +3,7 @@
 
 #include <hidboot.h>
 
+class CDesktopLauncher;
 class CWindow;
 
 enum
@@ -18,7 +19,9 @@ enum
     CHAR_BORDER_HORIZ_TOP,
     CHAR_BORDER_HORIZ_BOTTOM,
     CHAR_BORDER_CORNER_BOTTOM_LEFT,
-    CHAR_BORDER_CORNER_BOTTOM_RIGHT
+    CHAR_BORDER_CORNER_BOTTOM_RIGHT,
+
+    CHAR_APP_ICON_START
 };
 
 enum EMouseButton { BUTTON_LEFT=0, BUTTON_RIGHT, BUTTON_MIDDLE, BUTTON_MAX };
@@ -41,18 +44,24 @@ class CGUI
     CUSBMouseParser mouseParser;
     uint16_t mouseX, mouseY;
     EMouseButtonState mouseButtonStates[BUTTON_MAX];
+
     CWindow *bottomWindow, *topWindow;
     bool dragWindow;
     uint8_t winDragXOffset;
 
+    CDesktopLauncher *firstDesktopLauncher;
+
     void initGD(void);
-    void redrawWindows(void);
+    void redrawDesktop(void);
     void drawMouse(void);
     void setWindowPos(CWindow *w, uint16_t x, uint16_t y);
 
 public:
+    CGUI(void) : bottomWindow(0), topWindow(0), firstDesktopLauncher(0) { }
+
     void init(void);
     void addWindow(CWindow *w);
+    void addDesktopLauncher(CDesktopLauncher *l);
     void moveMouse(int8_t dx, int8_t dy);
     void setMouseButton(EMouseButton button, EMouseButtonState state);
 };

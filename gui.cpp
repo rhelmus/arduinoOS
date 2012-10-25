@@ -2,6 +2,7 @@
 #include <GD.h>
 
 #include "j1firmware/bg.h"
+#include "desktoplauncher.h"
 #include "gfx.h"
 #include "gui.h"
 #include "usbmouse.h"
@@ -17,6 +18,8 @@ CWindow w2(10, 10, 10, 10);
 CWindow w3(30, 25, 20, 10);
 CWindow w4(5, 25, 25, 5);
 
+CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App");
+
 CWindow *getTopWindowFromPos(CWindow *botw, uint8_t x, uint8_t y)
 {
     CWindow *w = botw, *ret = 0;
@@ -29,7 +32,7 @@ CWindow *getTopWindowFromPos(CWindow *botw, uint8_t x, uint8_t y)
             (y >= dim.y) && (y <= (dim.y + dim.h)))
             ret = w;
 
-        w = w->nextWindow();
+        w = w->getNextWindow();
     }
 
     return ret;
@@ -58,10 +61,50 @@ int8_t getClosestHorizBorder(CWindow *botw, uint8_t col, uint8_t row)
             }
         }
 
-        w = w->nextWindow();
+        w = w->getNextWindow();
     }
 
     return ret;
+}
+
+// Font loading from assets, see http://excamera.com/sphinx/gameduino/samples/assetlibrary/index.html
+void assetASCII()
+{
+    uint8_t stretch[16] =
+    {
+        0x00, 0x03, 0x0c, 0x0f,
+        0x30, 0x33, 0x3c, 0x3f,
+        0xc0, 0xc3, 0xcc, 0xcf,
+        0xf0, 0xf3, 0xfc, 0xff
+    };
+
+#ifdef __AVR__
+    Asset a;
+    a.open("fonts", "font8x8", NULL);
+#endif
+
+    for (uint16_t i=0; i<768; ++i)
+    {
+        uint8_t b;
+
+#ifndef __AVR__
+        b = pgm_read_byte(font8x8 + i);
+#else
+        a.read(&b, 1);
+#endif
+        uint8_t h = stretch[b >> 4];
+        uint8_t l = stretch[b & 0xf];
+        GD.wr(0x1000 + (16 * ' ') + (2 * i), h);
+        GD.wr(0x1000 + (16 * ' ') + (2 * i) + 1, l);
+    }
+
+    for (uint8_t i = 0x20; i < 0x80; ++i)
+    {
+        GD.setpal(4 * i + 0, TRANSPARENT);
+        GD.setpal(4 * i + 3, RGB(0, 0, 0));
+    }
+
+//    GD.fill(RAM_PIC, ' ', 4096);
 }
 
 }
@@ -107,6 +150,8 @@ void CGUI::initGD()
 {
     GD.begin();
 
+    assetASCII();
+
     GD.wr16(BG_COLOR, RGB(225, 225, 225));
 
     GD.wr16(RAM_PAL + (CHAR_BACKGROUND * 8), RGB(0, 0, 255));
@@ -117,8 +162,14 @@ void CGUI::initGD()
     GD.copy(RAM_CHR + (CHAR_BORDER_VERT_LEFT * 16), borderChars, sizeof(borderChars));
     GD.copy(RAM_PAL + (CHAR_BORDER_VERT_LEFT * 8), borderPal, sizeof(borderPal));
 
+    GD.copy(RAM_CHR + (CHAR_APP_ICON_START * 16), appIconChars, sizeof(appIconChars));
+    GD.copy(RAM_PAL + (CHAR_APP_ICON_START * 8), appIconPal, sizeof(appIconPal));
+
     GD.copy(PALETTE4A, mouseArrowPal, sizeof(mouseArrowPal));
     GD.copy(RAM_SPRIMG, mouseArrowImg, sizeof(mouseArrowImg));
+
+    /*GD.copy(PALETTE16A, appIconPal, sizeof(appIconPal));
+    GD.copy(RAM_SPRIMG, appIconImg, sizeof(appIconImg));*/
 
     GD.wr16(COMM+0, RGB(200, 200, 200)); // background top bar
 
@@ -129,16 +180,35 @@ void CGUI::initGD()
     }
 
     GD.microcode(bg_code, sizeof(bg_code));
+
+
+    /*GD.__wstartspr(1);
+    draw_appIcon(10, 250, 0, 0);
+    draw_appIcon(26, 250, 1, 0);
+    draw_appIcon(10, 266, 2, 0);
+    draw_appIcon(26, 266, 3, 0);
+    GD.__end();*/
+    //GD.sprite2x2(1, 10, 250, 0, 10, 0, 0);
 }
 
-void CGUI::redrawWindows()
+void CGUI::redrawDesktop()
 {
-    CWindow *wit = bottomWindow;
+    GD.waitvblank();
+
+    CWidget *wit = firstDesktopLauncher;
+/*    while (wit)
+    {
+        wit->draw();
+        wit = wit->getNextWidget();
+    }*/
+
+    wit = bottomWindow;
     while (wit)
     {
         wit->draw();
-        wit = wit->nextWindow();
+        wit = wit->getNextWidget();
     }
+//    GD.waitvblank();
 }
 
 void CGUI::drawMouse()
@@ -178,12 +248,6 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
             int8_t endcol = getClosestHorizBorder(bottomWindow, startcol+1, line);
             if (endcol == -1)
                 endcol = wright + 1;
-            /*Serial.print("start/endcol/x/right/line/y: "); Serial.print(startcol, DEC);
-            Serial.print(", "); Serial.print(endcol, DEC);
-            Serial.print(", "); Serial.print(olddim.x, DEC);
-            Serial.print(", "); Serial.print(wright, DEC);
-            Serial.print(", "); Serial.print(line, DEC);
-            Serial.print(", "); Serial.println(olddim.y, DEC);*/
             GD.fill(atxy(startcol, line), CHAR_BACKGROUND, (endcol - startcol));
             startcol = getClosestHorizBorder(bottomWindow, endcol + 1, line);
             if (startcol == -1)
@@ -200,22 +264,30 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
         }
     }
 
-    // UNDONE
-    redrawWindows();
-
+    // UNDONE: doesn't keep window order right
 #if 0
     CWindow *wit = bottomWindow;
     while (wit)
     {
+#define inDimX(d1, d2) ((d1.x >= d2.x) && (d1.x <= (d2.x + d2.w)))
+#define inDimY(d1, d2) ((d1.y >= d2.y) && (d1.y <= (d2.y + d2.h)))
+
         const CWindow::SDimensions dim = wit->getDimensions();
-        if (((olddim.x >= dim.x) && (olddim.x <= (dim.x + dim.w)) &&
+
+        if ((inDimX(dim, olddim) || inDimX(olddim, dim)) &&
+            (inDimY(dim, olddim) || inDimY(olddim, dim)))
+            wit->draw();
+
+        /*if (((olddim.x >= dim.x) && (olddim.x <= (dim.x + dim.w)) &&
             (olddim.y >= dim.y) && (olddim.y <= (dim.y + dim.h))) ||
            ((dim.x >= olddim.x) && (dim.x <= (olddim.x + olddim.w)) &&
             (dim.y >= olddim.y) && (dim.y <= (olddim.y + olddim.h))))
-            wit->draw();
+            wit->draw();*/
 
-        wit = wit->nextWindow();
+        wit = wit->getNextWidget();
     }
+#else
+    redrawDesktop();
 #endif
 }
 
@@ -236,8 +308,37 @@ void CGUI::init()
     addWindow(&w3);
     addWindow(&w4);
 
+    addDesktopLauncher(&launcher);
+
     GD.fill(RAM_PIC, CHAR_BACKGROUND, 4096); // clear screen
-    redrawWindows();
+    redrawDesktop();
+
+    /*for (byte y = 0; y < 4; ++y)
+        GD.copy(RAM_PIC + (y+32) * 64, (appIconPic + y * 4), 4);*/
+
+    /*uint8_t x = 0, y = 0;
+    for (uint8_t i=0; i<9; ++i)
+    {
+        GD.wr(atxy(x + 1, y + 3), CHAR_APP_ICON_START + pgm_read_byte_near(appIconPic + i));
+        ++x;
+        if (x == 3)
+        {
+            x = 0;
+            ++y;
+        }
+    }*/
+
+/*    GD.wr(atxy(1, 32), APP_ICON_START);
+    GD.wr(atxy(2, 32), APP_ICON_START + 1);
+    GD.wr(atxy(3, 32), APP_ICON_START + 2);
+    GD.wr(atxy(1, 33), APP_ICON_START + 3);
+    GD.wr(atxy(2, 33), APP_ICON_START + 4);
+    GD.wr(atxy(3, 33), APP_ICON_START + 5);
+    GD.wr(atxy(1, 34), APP_ICON_START + 6);
+    GD.wr(atxy(2, 34), APP_ICON_START + 7);
+    GD.wr(atxy(3, 34), APP_ICON_START + 8);*/
+
+//    GD.putstr(1, 7, "Calc");
 }
 
 void CGUI::addWindow(CWindow *w)
@@ -246,10 +347,23 @@ void CGUI::addWindow(CWindow *w)
         bottomWindow = topWindow = w;
     else
     {
-        topWindow->setNextWindow(w);
+        topWindow->setNextWidget(w);
         topWindow->setActive(false);
         w->setActive(true);
         topWindow = w;
+    }
+}
+
+void CGUI::addDesktopLauncher(CDesktopLauncher *l)
+{
+    if (!firstDesktopLauncher)
+        firstDesktopLauncher = l;
+    else
+    {
+        CWidget *lit = firstDesktopLauncher;
+        while (lit->getNextWidget())
+            lit = lit->getNextWidget();
+        lit->setNextWidget(l);
     }
 }
 
@@ -295,21 +409,21 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
                 {
                     // Find old previous window
                     CWindow *oldpw = bottomWindow;
-                    while (oldpw->nextWindow() != w)
-                        oldpw = oldpw->nextWindow();
-                    oldpw->setNextWindow(w->nextWindow()); // Unlink
+                    while (oldpw->getNextWidget() != w)
+                        oldpw = oldpw->getNextWindow();
+                    oldpw->setNextWidget(w->getNextWidget()); // Unlink
                 }
                 else
-                    bottomWindow = bottomWindow->nextWindow();
+                    bottomWindow = bottomWindow->getNextWindow();
 
                 w->setActive(true);
                 topWindow->setActive(false);
 
-                topWindow->setNextWindow(w);
-                w->setNextWindow(0);
+                topWindow->setNextWidget(w);
+                w->setNextWidget(0);
                 topWindow = w;
 
-                redrawWindows();
+                redrawDesktop();
             }
 
             if (chy == topWindow->getDimensions().y) // Clicked at window top?
