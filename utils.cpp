@@ -9,3 +9,11 @@ uint16_t atxy(uint8_t x, uint8_t y)
     return /*RAM_PIC*/FRAMEBUFFER + 64 * y + x;
 }
 
+// Basically GD.putstr, but using framebuffer
+void putstr(uint8_t x, uint8_t y, const char *s)
+{
+    GD.__wstart(FRAMEBUFFER + (y << 6) + x);
+    while (*s)
+        SPI.transfer(*s++);
+    GD.__end();
+}

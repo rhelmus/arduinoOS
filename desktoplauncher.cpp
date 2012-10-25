@@ -16,6 +16,21 @@ void CDesktopLauncher::coreDraw()
         }
     }
 
-    /*GD.putstr(getDimensions().x + ((getDimensions().w - strlen(name)) / 2),
-              getDimensions().y + getDimensions().h-1, name);*/
+    putstr(getDimensions().x + ((getDimensions().w - strlen(name)) / 2),
+           getDimensions().y + getDimensions().h-1, name);
+}
+
+bool CDesktopLauncher::coreInWidget(uint8_t x, uint8_t y) const
+{
+    const SDimensions d(getDimensions());
+    if ((y >= d.y) && (y < (d.y + d.h))) // Within y range?
+    {
+        if (y < (d.y + d.h - 1)) // Above title?
+            return ((x >= (d.x + 2)) && (x < (d.x + d.w - 2)));
+
+        // In title?
+        return (x >= d.x) && (x < (d.x + d.w));
+    }
+
+    return false;
 }

@@ -12,7 +12,8 @@ void CWindow::coreDraw()
             (isActive()) ? CHAR_WINDOW_TOP_ACTIVE : CHAR_WINDOW_TOP_INACTIVE,
             getDimensions().w+1);
 
-//    GD.putstr(getDimensions().x + ((getDimensions().w - 6)/2), getDimensions().y, "Window");
+    // UNDONE
+    putstr(getDimensions().x + ((getDimensions().w - 6)/2), getDimensions().y, "Window");
 
     const uint8_t right = getDimensions().x + getDimensions().w;
     const uint8_t bottom = getDimensions().y + getDimensions().h;

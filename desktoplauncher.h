@@ -12,6 +12,7 @@ class CDesktopLauncher : public CWidget
     const char *name;
 
     virtual void coreDraw(void);
+    virtual bool coreInWidget(uint8_t x, uint8_t y) const;
 
 public:
     CDesktopLauncher(uint8_t x, uint8_t y, uint8_t i, prog_uchar *p, const char *n)

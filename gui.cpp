@@ -20,19 +20,26 @@ CWindow w4(5, 25, 25, 5);
 
 CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App");
 
-CWindow *getTopWindowFromPos(CWindow *botw, uint8_t x, uint8_t y)
+void clearScreen(void)
 {
-    CWindow *w = botw, *ret = 0;
+    GD.fill(FRAMEBUFFER, CHAR_BACKGROUND, 4096);
+}
+
+
+CWidget *getTopWidgetFromPos(CWidget *botw, uint8_t x, uint8_t y)
+{
+    CWidget *w = botw, *ret = 0;
 
     while (w)
     {
         const CWindow::SDimensions dim = w->getDimensions();
 
-        if ((x >= dim.x) && (x <= (dim.x + dim.w)) &&
-            (y >= dim.y) && (y <= (dim.y + dim.h)))
+//        if ((x >= dim.x) && (x <= (dim.x + dim.w)) &&
+//            (y >= dim.y) && (y <= (dim.y + dim.h)))
+        if (w->inWidget(x, y))
             ret = w;
 
-        w = w->getNextWindow();
+        w = w->getNextWidget();
     }
 
     return ret;
@@ -209,7 +216,7 @@ void CGUI::drawMouse()
     GD.__end();
 }
 
-void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
+void CGUI::setWindowPos(CWindow *w, uint8_t x, uint8_t y)
 {
     CWindow::SDimensions olddim = w->getDimensions();
     w->setPos(x, y);
@@ -221,7 +228,7 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
     {
         int8_t startcol = olddim.x;
 
-        while (getTopWindowFromPos(bottomWindow, startcol, line) != 0)
+        while (getTopWidgetFromPos(bottomWindow, startcol, line) != 0)
         {
             const int8_t b = getClosestHorizBorder(bottomWindow, startcol, line);
             if (b == -1)
@@ -244,7 +251,7 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
                 break;
             ++startcol;
 
-            while (getTopWindowFromPos(bottomWindow, startcol, line) != 0)
+            while (getTopWidgetFromPos(bottomWindow, startcol, line) != 0)
             {
                 startcol = getClosestHorizBorder(bottomWindow, startcol, line);
                 if (startcol == -1)
@@ -254,31 +261,7 @@ void CGUI::setWindowPos(CWindow *w, uint16_t x, uint16_t y)
         }
     }
 
-    // UNDONE: doesn't keep window order right
-#if 0
-    CWindow *wit = bottomWindow;
-    while (wit)
-    {
-#define inDimX(d1, d2) ((d1.x >= d2.x) && (d1.x <= (d2.x + d2.w)))
-#define inDimY(d1, d2) ((d1.y >= d2.y) && (d1.y <= (d2.y + d2.h)))
-
-        const CWindow::SDimensions dim = wit->getDimensions();
-
-        if ((inDimX(dim, olddim) || inDimX(olddim, dim)) &&
-            (inDimY(dim, olddim) || inDimY(olddim, dim)))
-            wit->draw();
-
-        /*if (((olddim.x >= dim.x) && (olddim.x <= (dim.x + dim.w)) &&
-            (olddim.y >= dim.y) && (olddim.y <= (dim.y + dim.h))) ||
-           ((dim.x >= olddim.x) && (dim.x <= (olddim.x + olddim.w)) &&
-            (dim.y >= olddim.y) && (dim.y <= (olddim.y + olddim.h))))
-            wit->draw();*/
-
-        wit = wit->getNextWidget();
-    }
-#else
     redrawDesktop();
-#endif
 }
 
 void CGUI::init()
@@ -286,9 +269,6 @@ void CGUI::init()
     initGD();
 
     memset(mouseButtonStates, BUTTON_UP, sizeof(mouseButtonStates));
-    mouseX = 200;
-    mouseY = 150;
-    dragWindow = false;
 
     drawMouse();
     setUSBMouseParser(&mouseParser);
@@ -300,7 +280,7 @@ void CGUI::init()
 
     addDesktopLauncher(&launcher);
 
-    GD.fill(/*RAM_PIC*/FRAMEBUFFER, CHAR_BACKGROUND, 4096); // clear screen
+    clearScreen();
     redrawDesktop();
 }
 
@@ -339,18 +319,21 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
     drawMouse();
 
-    if (dragWindow)
+    if (dragWidget)
     {
-        uint8_t newx = convertPxToChar(mouseX) + winDragXOffset;
-        uint8_t newy = convertPxToChar(mouseY);
-        const CWindow::SDimensions dim(topWindow->getDimensions());
+        uint8_t newx = convertPxToChar(mouseX) + dragXOffset;
+        uint8_t newy = convertPxToChar(mouseY) + dragYOffset;
+        const CWindow::SDimensions dim(dragWidget->getDimensions());
 
         if ((newx + dim.w) >= 50)
             newx = dim.x;
         if ((newy == 0) || (newy + dim.h) >= 37)
             newy = dim.y;
 
-        setWindowPos(topWindow, newx, newy);
+        //setWindowPos(dragWidget, newx, newy);
+        dragWidget->setPos(newx, newy);
+        clearScreen();
+        redrawDesktop();
     }
 }
 
@@ -362,7 +345,7 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
     {
         const uint8_t chx = convertPxToChar(mouseX);
         const uint8_t chy = convertPxToChar(mouseY);
-        CWindow *w = getTopWindowFromPos(bottomWindow, chx, chy);
+        CWidget *w = getTopWidgetFromPos(bottomWindow, chx, chy);
 
         if (w)
         {
@@ -384,18 +367,23 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
 
                 topWindow->setNextWidget(w);
                 w->setNextWidget(0);
-                topWindow = w;
+                topWindow = static_cast<CWindow *>(w);
 
                 redrawDesktop();
             }
 
             if (chy == topWindow->getDimensions().y) // Clicked at window top?
-            {
-                dragWindow = true;
-                winDragXOffset = topWindow->getDimensions().x - convertPxToChar(mouseX);
-            }
+                dragWidget = w;
+        }
+        else // otherwise check desktop launchers
+            dragWidget = getTopWidgetFromPos(firstDesktopLauncher, chx, chy);
+
+        if (dragWidget)
+        {
+            dragXOffset = dragWidget->getDimensions().x - convertPxToChar(mouseX);
+            dragYOffset = dragWidget->getDimensions().y - convertPxToChar(mouseY);
         }
     }
-    else if (dragWindow)
-        dragWindow = false;
+    else if (dragWidget)
+        dragWidget = 0;
 }

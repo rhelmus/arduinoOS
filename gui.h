@@ -4,6 +4,7 @@
 #include <hidboot.h>
 
 class CDesktopLauncher;
+class CWidget;
 class CWindow;
 
 enum
@@ -46,20 +47,19 @@ class CGUI
     CUSBMouseParser mouseParser;
     uint16_t mouseX, mouseY;
     EMouseButtonState mouseButtonStates[BUTTON_MAX];
-
     CWindow *bottomWindow, *topWindow;
-    bool dragWindow;
-    uint8_t winDragXOffset;
-
     CDesktopLauncher *firstDesktopLauncher;
+    CWidget *dragWidget;
+    uint8_t dragXOffset, dragYOffset;
 
     void initGD(void);
     void redrawDesktop(void);
     void drawMouse(void);
-    void setWindowPos(CWindow *w, uint16_t x, uint16_t y);
+    void setWindowPos(CWindow *w, uint8_t x, uint8_t y);
 
 public:
-    CGUI(void) : bottomWindow(0), topWindow(0), firstDesktopLauncher(0) { }
+    CGUI(void) : mouseX(200), mouseY(150), bottomWindow(0), topWindow(0),
+        firstDesktopLauncher(0), dragWidget(0) { }
 
     void init(void);
     void addWindow(CWindow *w);
