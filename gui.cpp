@@ -168,9 +168,6 @@ void CGUI::initGD()
     GD.copy(PALETTE4A, mouseArrowPal, sizeof(mouseArrowPal));
     GD.copy(RAM_SPRIMG, mouseArrowImg, sizeof(mouseArrowImg));
 
-    /*GD.copy(PALETTE16A, appIconPal, sizeof(appIconPal));
-    GD.copy(RAM_SPRIMG, appIconImg, sizeof(appIconImg));*/
-
     GD.wr16(COMM+0, RGB(200, 200, 200)); // background top bar
 
     // Desktop gradient
@@ -180,27 +177,19 @@ void CGUI::initGD()
     }
 
     GD.microcode(bg_code, sizeof(bg_code));
-
-
-    /*GD.__wstartspr(1);
-    draw_appIcon(10, 250, 0, 0);
-    draw_appIcon(26, 250, 1, 0);
-    draw_appIcon(10, 266, 2, 0);
-    draw_appIcon(26, 266, 3, 0);
-    GD.__end();*/
-    //GD.sprite2x2(1, 10, 250, 0, 10, 0, 0);
 }
 
 void CGUI::redrawDesktop()
 {
-    GD.waitvblank();
+    while (GD.rd(COMM+42))
+        ; // Wait till j1 is done with drawing framebuffer
 
     CWidget *wit = firstDesktopLauncher;
-/*    while (wit)
+    while (wit)
     {
         wit->draw();
         wit = wit->getNextWidget();
-    }*/
+    }
 
     wit = bottomWindow;
     while (wit)
@@ -208,7 +197,8 @@ void CGUI::redrawDesktop()
         wit->draw();
         wit = wit->getNextWidget();
     }
-//    GD.waitvblank();
+
+    GD.wr(COMM+42, 1); // Copy framebuffer to char memory
 }
 
 void CGUI::drawMouse()
@@ -310,35 +300,8 @@ void CGUI::init()
 
     addDesktopLauncher(&launcher);
 
-    GD.fill(RAM_PIC, CHAR_BACKGROUND, 4096); // clear screen
+    GD.fill(/*RAM_PIC*/FRAMEBUFFER, CHAR_BACKGROUND, 4096); // clear screen
     redrawDesktop();
-
-    /*for (byte y = 0; y < 4; ++y)
-        GD.copy(RAM_PIC + (y+32) * 64, (appIconPic + y * 4), 4);*/
-
-    /*uint8_t x = 0, y = 0;
-    for (uint8_t i=0; i<9; ++i)
-    {
-        GD.wr(atxy(x + 1, y + 3), CHAR_APP_ICON_START + pgm_read_byte_near(appIconPic + i));
-        ++x;
-        if (x == 3)
-        {
-            x = 0;
-            ++y;
-        }
-    }*/
-
-/*    GD.wr(atxy(1, 32), APP_ICON_START);
-    GD.wr(atxy(2, 32), APP_ICON_START + 1);
-    GD.wr(atxy(3, 32), APP_ICON_START + 2);
-    GD.wr(atxy(1, 33), APP_ICON_START + 3);
-    GD.wr(atxy(2, 33), APP_ICON_START + 4);
-    GD.wr(atxy(3, 33), APP_ICON_START + 5);
-    GD.wr(atxy(1, 34), APP_ICON_START + 6);
-    GD.wr(atxy(2, 34), APP_ICON_START + 7);
-    GD.wr(atxy(3, 34), APP_ICON_START + 8);*/
-
-//    GD.putstr(1, 7, "Calc");
 }
 
 void CGUI::addWindow(CWindow *w)

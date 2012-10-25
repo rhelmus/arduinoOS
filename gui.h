@@ -24,6 +24,8 @@ enum
     CHAR_APP_ICON_START
 };
 
+#define FRAMEBUFFER 0x6FFF
+
 enum EMouseButton { BUTTON_LEFT=0, BUTTON_RIGHT, BUTTON_MIDDLE, BUTTON_MAX };
 enum EMouseButtonState { BUTTON_DOWN, BUTTON_UP };
 

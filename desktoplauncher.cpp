@@ -12,10 +12,10 @@ void CDesktopLauncher::coreDraw()
     {
         for (uint8_t x=ileft; x<iright; ++x, ++i)
         {
-            GD.wr(atxy(x, y), /*iconOffset + pgm_read_byte_near(iconPic + i)*/1);
+            GD.wr(atxy(x, y), iconOffset + pgm_read_byte_near(iconPic + i));
         }
     }
 
-    GD.putstr(getDimensions().x + ((getDimensions().w - strlen(name)) / 2),
-              getDimensions().y + getDimensions().h-1, name);
+    /*GD.putstr(getDimensions().x + ((getDimensions().w - strlen(name)) / 2),
+              getDimensions().y + getDimensions().h-1, name);*/
 }
