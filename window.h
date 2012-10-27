@@ -8,6 +8,7 @@ class CWindow : public CWidget
     CWindow *next;
 
     virtual void coreDraw(void);
+    virtual bool coreHandleMouseClick(EMouseButton button);
 
 public:
     // UNDONE: Make protected

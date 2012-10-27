@@ -133,8 +133,8 @@ void CGUI::initGD()
     GD.wr16(RAM_PAL + (CHAR_WINDOW_TOP_INACTIVE * 8), RGB(180, 180, 180));
     GD.wr16(RAM_PAL + (CHAR_WINDOW_TOP_ACTIVE * 8), RGB(0, 255, 0));
 
-    GD.copy(RAM_CHR + (CHAR_BORDER_VERT_LEFT * 16), borderChars, sizeof(borderChars));
-    GD.copy(RAM_PAL + (CHAR_BORDER_VERT_LEFT * 8), borderPal, sizeof(borderPal));
+    GD.copy(RAM_CHR + (CHAR_WINDOW_VERT_LEFT * 16), windowChars, sizeof(windowChars));
+    GD.copy(RAM_PAL + (CHAR_WINDOW_VERT_LEFT * 8), windowPal, sizeof(windowPal));
 
     GD.copy(RAM_CHR + (CHAR_APP_ICON_START * 16), appIconChars, sizeof(appIconChars));
     GD.copy(RAM_PAL + (CHAR_APP_ICON_START * 8), appIconPal, sizeof(appIconPal));
@@ -193,7 +193,7 @@ void CGUI::drawMouse()
     GD.__end();
 }
 
-void CGUI::closeWindow(CWindow *w)
+void CGUI::removeWindow(CWindow *w)
 {
     if (bottomWindow != w)
     {
@@ -243,13 +243,21 @@ void CGUI::openWindow(CWindow *w)
         bottomWindow = topWindow = w;
     else
     {
-        closeWindow(w); // remove from window list if present
+        removeWindow(w); // remove from window list if present
         topWindow->setNextWidget(w);
         topWindow->setActive(false);
         topWindow = w;
     }
 
     w->setActive(true);
+    redrawDesktop();
+}
+
+void CGUI::closeWindow(CWindow *w)
+{
+    removeWindow(w);
+    if (topWindow)
+        topWindow->setActive(true);
     redrawDesktop();
 }
 
@@ -275,11 +283,11 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
     drawMouse();
 
-    if (dragWidget)
+    if (canDrag)
     {
         uint8_t newx = convertPxToChar(mouseX) + dragXOffset;
         uint8_t newy = convertPxToChar(mouseY) + dragYOffset;
-        const CWidget::SDimensions dim(dragWidget->getDimensions());
+        const CWidget::SDimensions dim(clickedWidget->getDimensions());
 
         if ((newx + dim.w - 1) >= 50)
             newx = dim.x;
@@ -289,7 +297,7 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
         if ((newx != dim.x) || (newy != dim.y))
         {
             dragged = true;
-            dragWidget->setPos(newx, newy);
+            clickedWidget->setPos(newx, newy);
             redrawDesktop();
         }
     }
@@ -308,43 +316,31 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
         if (w)
         {
             openWindow(static_cast<CWindow *>(w)); // Put window on top
-            /*if (w != topWindow)
-            {
-                closeWindow(static_cast<CWindow *>(w));
-
-                w->setActive(true);
-                topWindow->setActive(false);
-
-                topWindow->setNextWidget(w);
-                w->setNextWidget(0);
-                topWindow = static_cast<CWindow *>(w);
-
-                drawWindows();
-                updateCharScreen();
-            }*/
-
-            if (chy == topWindow->getDimensions().y) // Clicked at window top?
-                dragWidget = w;
+            canDrag = (chy == topWindow->getDimensions().y); // Clicked at window top?
+            clickedWidget = w;
         }
         else // otherwise check desktop launchers
-            dragWidget = getTopWidgetFromPos(firstDesktopLauncher, chx, chy);
-
-        if (dragWidget)
         {
-            dragXOffset = dragWidget->getDimensions().x - convertPxToChar(mouseX);
-            dragYOffset = dragWidget->getDimensions().y - convertPxToChar(mouseY);
+            clickedWidget = getTopWidgetFromPos(firstDesktopLauncher, chx, chy);
+            canDrag = (clickedWidget != 0);
+        }
+
+        if (canDrag)
+        {
+            dragXOffset = clickedWidget->getDimensions().x - convertPxToChar(mouseX);
+            dragYOffset = clickedWidget->getDimensions().y - convertPxToChar(mouseY);
         }
     }
     else
     {
-        if (dragWidget)
+        if (clickedWidget)
         {
             if (!dragged)
-                dragWidget->handleMouseClick(button);
+                clickedWidget->handleMouseClick(button);
             else
                 dragged = false;
 
-            dragWidget = 0;
+            canDrag = false;
         }
     }
 }
