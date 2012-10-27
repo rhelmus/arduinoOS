@@ -13,7 +13,7 @@ h# 6fff constant FRAMEBUFFER \ fb block is at end of RAM_SPRIMG
 : setbg ( -- )
         YLINE c@
         dup d# 0 = if COMM+0 @ h# 2000 ! drop else
-        dup d# 8 > over d# 300 < and if d# 4 rshift d# 2 * COMM+2 + @ h# 2000 ! else
+        dup d# 8 = over d# 300 < and if d# 4 rshift d# 2 * COMM+2 + @ h# 2000 ! else
         drop then then ;
 
 : main

@@ -1,6 +1,8 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
+#include "gui.h"
+
 class CWidget
 {
 public:
@@ -20,14 +22,21 @@ private:
     virtual bool coreInWidget(uint8_t x, uint8_t y) const
     { return ((x >= dim.x) && (x < (dim.x + dim.w)) &&
               (y >= dim.y) && (y < (dim.y + dim.h))); }
+    virtual bool coreHandleMouseClick(EMouseButton button) { return false; }
 
 protected:
     CWidget(uint8_t x, uint8_t y, uint8_t w, uint8_t h) :
         dim(x, y, w, h), active(false) { }
+    CWidget(uint8_t x, uint8_t y) :
+        dim(x, y, 0, 0), active(false) { }
+
+    void setWidth(uint8_t w) { dim.w = w; }
+    void setHeight(uint8_t h) { dim.h = h; }
 
 public:
     void draw(void) { coreDraw(); }
     bool inWidget(uint8_t x, uint8_t y) const { return coreInWidget(x, y); }
+    bool handleMouseClick(EMouseButton button) { return coreHandleMouseClick(button); }
     bool isActive(void) const { return active; }
     void setActive(bool a) { active = a; }
     void setPos(uint8_t x, uint8_t y) { dim.x = x; dim.y = y; }

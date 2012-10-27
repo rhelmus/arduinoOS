@@ -18,7 +18,7 @@ CWindow w2(10, 10, 10, 10);
 CWindow w3(30, 25, 20, 10);
 CWindow w4(5, 25, 25, 5);
 
-CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App");
+CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App", &window);
 
 void clearScreen(void)
 {
@@ -32,43 +32,10 @@ CWidget *getTopWidgetFromPos(CWidget *botw, uint8_t x, uint8_t y)
 
     while (w)
     {
-        const CWindow::SDimensions dim = w->getDimensions();
-
-//        if ((x >= dim.x) && (x <= (dim.x + dim.w)) &&
-//            (y >= dim.y) && (y <= (dim.y + dim.h)))
         if (w->inWidget(x, y))
             ret = w;
 
         w = w->getNextWidget();
-    }
-
-    return ret;
-}
-
-int8_t getClosestHorizBorder(CWindow *botw, uint8_t col, uint8_t row)
-{
-    CWindow *w = botw;
-    int8_t ret = -1;
-
-    while (w)
-    {
-        const CWindow::SDimensions dim = w->getDimensions();
-
-        if ((row >= dim.y) && (row <= (dim.y + dim.h)))
-        {
-            if (dim.x >= col)
-            {
-                if ((ret == -1) || (ret > dim.x))
-                    ret = dim.x;
-            }
-            else if ((dim.x + dim.w) >= col)
-            {
-                if ((ret == -1) || (ret > (dim.x + dim.w)))
-                    ret = dim.x + dim.w;
-            }
-        }
-
-        w = w->getNextWindow();
     }
 
     return ret;
@@ -186,10 +153,19 @@ void CGUI::initGD()
     GD.microcode(bg_code, sizeof(bg_code));
 }
 
+void CGUI::drawWindows()
+{
+    CWidget *wit = bottomWindow;
+    while (wit)
+    {
+        wit->draw();
+        wit = wit->getNextWidget();
+    }
+}
+
 void CGUI::redrawDesktop()
 {
-    while (GD.rd(COMM+42))
-        ; // Wait till j1 is done with drawing framebuffer
+    clearScreen();
 
     CWidget *wit = firstDesktopLauncher;
     while (wit)
@@ -198,14 +174,15 @@ void CGUI::redrawDesktop()
         wit = wit->getNextWidget();
     }
 
-    wit = bottomWindow;
-    while (wit)
-    {
-        wit->draw();
-        wit = wit->getNextWidget();
-    }
+    drawWindows();
+    updateCharScreen();
+}
 
+void CGUI::updateCharScreen()
+{
     GD.wr(COMM+42, 1); // Copy framebuffer to char memory
+    while (GD.rd(COMM+42))
+        ; // Wait till j1 is done
 }
 
 void CGUI::drawMouse()
@@ -216,52 +193,26 @@ void CGUI::drawMouse()
     GD.__end();
 }
 
-void CGUI::setWindowPos(CWindow *w, uint8_t x, uint8_t y)
+void CGUI::closeWindow(CWindow *w)
 {
-    CWindow::SDimensions olddim = w->getDimensions();
-    w->setPos(x, y);
-
-    const uint8_t wright = olddim.x + olddim.w;
-    const uint8_t wbottom = olddim.y + olddim.h;
-
-    for (uint8_t line=olddim.y; line<=wbottom; ++line)
+    if (bottomWindow != w)
     {
-        int8_t startcol = olddim.x;
+        // Find previous window
+        CWindow *prevw = bottomWindow;
+        while ((prevw->getNextWidget() != w) && prevw->getNextWidget())
+            prevw = prevw->getNextWindow();
 
-        while (getTopWidgetFromPos(bottomWindow, startcol, line) != 0)
+        if (prevw) // 0 if window not present
         {
-            const int8_t b = getClosestHorizBorder(bottomWindow, startcol, line);
-            if (b == -1)
-            {
-                ++startcol;
-                break;
-            }
-            else
-                startcol = b + 1;
-        }
-
-        while ((startcol != -1) && (startcol <= wright))
-        {
-            int8_t endcol = getClosestHorizBorder(bottomWindow, startcol+1, line);
-            if (endcol == -1)
-                endcol = wright + 1;
-            GD.fill(atxy(startcol, line), CHAR_BACKGROUND, (endcol - startcol));
-            startcol = getClosestHorizBorder(bottomWindow, endcol + 1, line);
-            if (startcol == -1)
-                break;
-            ++startcol;
-
-            while (getTopWidgetFromPos(bottomWindow, startcol, line) != 0)
-            {
-                startcol = getClosestHorizBorder(bottomWindow, startcol, line);
-                if (startcol == -1)
-                    break;
-                ++startcol;
-            }
+            prevw->setNextWidget(w->getNextWidget()); // Unlink
+            if (topWindow == w)
+                topWindow = prevw;
         }
     }
+    else
+        bottomWindow = bottomWindow->getNextWindow();
 
-    redrawDesktop();
+    w->setNextWidget(0);
 }
 
 void CGUI::init()
@@ -273,28 +224,33 @@ void CGUI::init()
     drawMouse();
     setUSBMouseParser(&mouseParser);
 
-    addWindow(&window);
-    addWindow(&w2);
-    addWindow(&w3);
-    addWindow(&w4);
+//    activateWindow(&window);
+    openWindow(&w2);
+    openWindow(&w3);
+    openWindow(&w4);
 
     addDesktopLauncher(&launcher);
 
-    clearScreen();
     redrawDesktop();
 }
 
-void CGUI::addWindow(CWindow *w)
+void CGUI::openWindow(CWindow *w)
 {
+    if (w == topWindow)
+        return;
+
     if (!bottomWindow)
         bottomWindow = topWindow = w;
     else
     {
+        closeWindow(w); // remove from window list if present
         topWindow->setNextWidget(w);
         topWindow->setActive(false);
-        w->setActive(true);
         topWindow = w;
     }
+
+    w->setActive(true);
+    redrawDesktop();
 }
 
 void CGUI::addDesktopLauncher(CDesktopLauncher *l)
@@ -303,10 +259,10 @@ void CGUI::addDesktopLauncher(CDesktopLauncher *l)
         firstDesktopLauncher = l;
     else
     {
-        CWidget *lit = firstDesktopLauncher;
-        while (lit->getNextWidget())
-            lit = lit->getNextWidget();
-        lit->setNextWidget(l);
+        CWidget *wit = firstDesktopLauncher;
+        while (wit->getNextWidget())
+            wit = wit->getNextWidget();
+        wit->setNextWidget(l);
     }
 }
 
@@ -323,17 +279,19 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
     {
         uint8_t newx = convertPxToChar(mouseX) + dragXOffset;
         uint8_t newy = convertPxToChar(mouseY) + dragYOffset;
-        const CWindow::SDimensions dim(dragWidget->getDimensions());
+        const CWidget::SDimensions dim(dragWidget->getDimensions());
 
-        if ((newx + dim.w) >= 50)
+        if ((newx + dim.w - 1) >= 50)
             newx = dim.x;
-        if ((newy == 0) || (newy + dim.h) >= 37)
+        if ((newy == 0) || ((newy + dim.h - 1) >= 37))
             newy = dim.y;
 
-        //setWindowPos(dragWidget, newx, newy);
-        dragWidget->setPos(newx, newy);
-        clearScreen();
-        redrawDesktop();
+        if ((newx != dim.x) || (newy != dim.y))
+        {
+            dragged = true;
+            dragWidget->setPos(newx, newy);
+            redrawDesktop();
+        }
     }
 }
 
@@ -349,18 +307,10 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
 
         if (w)
         {
-            if (w != topWindow)
+            openWindow(static_cast<CWindow *>(w)); // Put window on top
+            /*if (w != topWindow)
             {
-                if (w != bottomWindow)
-                {
-                    // Find old previous window
-                    CWindow *oldpw = bottomWindow;
-                    while (oldpw->getNextWidget() != w)
-                        oldpw = oldpw->getNextWindow();
-                    oldpw->setNextWidget(w->getNextWidget()); // Unlink
-                }
-                else
-                    bottomWindow = bottomWindow->getNextWindow();
+                closeWindow(static_cast<CWindow *>(w));
 
                 w->setActive(true);
                 topWindow->setActive(false);
@@ -369,8 +319,9 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
                 w->setNextWidget(0);
                 topWindow = static_cast<CWindow *>(w);
 
-                redrawDesktop();
-            }
+                drawWindows();
+                updateCharScreen();
+            }*/
 
             if (chy == topWindow->getDimensions().y) // Clicked at window top?
                 dragWidget = w;
@@ -384,6 +335,16 @@ void CGUI::setMouseButton(EMouseButton button, EMouseButtonState state)
             dragYOffset = dragWidget->getDimensions().y - convertPxToChar(mouseY);
         }
     }
-    else if (dragWidget)
-        dragWidget = 0;
+    else
+    {
+        if (dragWidget)
+        {
+            if (!dragged)
+                dragWidget->handleMouseClick(button);
+            else
+                dragged = false;
+
+            dragWidget = 0;
+        }
+    }
 }

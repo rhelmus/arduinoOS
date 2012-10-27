@@ -51,18 +51,21 @@ class CGUI
     CDesktopLauncher *firstDesktopLauncher;
     CWidget *dragWidget;
     uint8_t dragXOffset, dragYOffset;
+    bool dragged;
 
     void initGD(void);
+    void drawWindows(void);
     void redrawDesktop(void);
+    void updateCharScreen(void);
     void drawMouse(void);
-    void setWindowPos(CWindow *w, uint8_t x, uint8_t y);
+    void closeWindow(CWindow *w);
 
 public:
     CGUI(void) : mouseX(200), mouseY(150), bottomWindow(0), topWindow(0),
         firstDesktopLauncher(0), dragWidget(0) { }
 
     void init(void);
-    void addWindow(CWindow *w);
+    void openWindow(CWindow *w);
     void addDesktopLauncher(CDesktopLauncher *l);
     void moveMouse(int8_t dx, int8_t dy);
     void setMouseButton(EMouseButton button, EMouseButtonState state);
