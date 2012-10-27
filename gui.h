@@ -45,6 +45,7 @@ protected:
 
 class CGUI
 {
+    uint32_t updateDelay;
     CUSBMouseParser mouseParser;
     uint16_t mouseX, mouseY;
     EMouseButtonState mouseButtonStates[BUTTON_MAX];
@@ -56,16 +57,18 @@ class CGUI
 
     void initGD(void);
     void drawWindows(void);
+    void redrawTopBar(void);
     void redrawDesktop(void);
     void updateCharScreen(void);
     void drawMouse(void);
     void removeWindow(CWindow *w);
 
 public:
-    CGUI(void) : mouseX(200), mouseY(150), bottomWindow(0), topWindow(0),
+    CGUI(void) : updateDelay(0), mouseX(200), mouseY(150), bottomWindow(0), topWindow(0),
         firstDesktopLauncher(0), clickedWidget(0), canDrag(false) { }
 
     void init(void);
+    void update(void);
     void openWindow(CWindow *w);
     void closeWindow(CWindow *w);
     void addDesktopLauncher(CDesktopLauncher *l);

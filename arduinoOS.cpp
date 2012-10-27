@@ -15,5 +15,6 @@ void setup()
 void loop()
 {
     updateUSBMouse();
+    GUI.update();
 }
 

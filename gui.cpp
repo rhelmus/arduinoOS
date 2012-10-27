@@ -20,11 +20,6 @@ CWindow w4(5, 25, 25, 5);
 
 CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App", &window);
 
-void clearScreen(void)
-{
-    GD.fill(FRAMEBUFFER, CHAR_BACKGROUND, 4096);
-}
-
 
 CWidget *getTopWidgetFromPos(CWidget *botw, uint8_t x, uint8_t y)
 {
@@ -143,9 +138,10 @@ void CGUI::initGD()
     GD.copy(RAM_SPRIMG, mouseArrowImg, sizeof(mouseArrowImg));
 
     GD.wr16(COMM+0, RGB(200, 200, 200)); // background top bar
+    GD.wr16(COMM+2, RGB(225, 225, 225)); // background desktop
 
     // Desktop gradient
-    for (uint8_t i=2; i<40; i+=2)
+    for (uint8_t i=4; i<42; i+=2)
     {
         GD.wr16(COMM+i, RGB(50-i, 100-i, 255-i));
     }
@@ -163,9 +159,20 @@ void CGUI::drawWindows()
     }
 }
 
+void CGUI::redrawTopBar()
+{
+    GD.fill(FRAMEBUFFER, CHAR_TRANSPARENT, 64); // Clear bar
+
+    char s[5];
+    itoa(freeRam(), s, 10);
+    putstr(1, 0, F("Mem free: ")); putstr(11, 0, s);
+
+    updateCharScreen();
+}
+
 void CGUI::redrawDesktop()
 {
-    clearScreen();
+    GD.fill(FRAMEBUFFER + 64, CHAR_BACKGROUND, 4096 - 64); // Clear desktop
 
     CWidget *wit = firstDesktopLauncher;
     while (wit)
@@ -180,8 +187,8 @@ void CGUI::redrawDesktop()
 
 void CGUI::updateCharScreen()
 {
-    GD.wr(COMM+42, 1); // Copy framebuffer to char memory
-    while (GD.rd(COMM+42))
+    GD.wr(COMM+44, 1); // Copy framebuffer to char memory
+    while (GD.rd(COMM+44))
         ; // Wait till j1 is done
 }
 
@@ -231,7 +238,18 @@ void CGUI::init()
 
     addDesktopLauncher(&launcher);
 
+    redrawTopBar();
     redrawDesktop();
+}
+
+void CGUI::update()
+{
+    const uint32_t curtime = millis();
+    if (updateDelay < curtime)
+    {
+        updateDelay = curtime + 2000;
+        redrawTopBar();
+    }
 }
 
 void CGUI::openWindow(CWindow *w)

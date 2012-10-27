@@ -2,8 +2,9 @@ start-microcode bg
 
 \ COMM interface:
 \ COMM+0: background colour top bar
-\ COMM+2-40: desktop background gradient colours (16 px blocks)
-\ COMM+42: set when framebuffer (fb) should be copied to char memory
+\ COMM+2: background colour desktop
+\ COMM+4-42: desktop gradient colours (16 px blocks)
+\ COMM+44: set when framebuffer (fb) should be copied to char memory
 
 h# 6fff constant FRAMEBUFFER \ fb block is at end of RAM_SPRIMG
 : 1+    d# 1 + ;
@@ -12,8 +13,8 @@ h# 6fff constant FRAMEBUFFER \ fb block is at end of RAM_SPRIMG
 : >     swap < ;
 : setbg ( -- )
         YLINE c@
-        dup d# 0 = if COMM+0 @ h# 2000 ! drop else
-        dup d# 8 = over d# 300 < and if d# 4 rshift d# 2 * COMM+2 + @ h# 2000 ! else
+        dup d# 0 = if COMM+0 @ BG_COLOR ! drop else
+        dup d# 7 > over d# 300 < and if d# 4 rshift d# 2 * COMM+4 + @ h# 2000 ! COMM+2 @ BG_COLOR ! else
         drop then then ;
 
 : main
@@ -21,7 +22,7 @@ h# 6fff constant FRAMEBUFFER \ fb block is at end of RAM_SPRIMG
         \ wait until command reg is nonzero
         begin
             setbg \ Update background
-            d# 42 COMM+0 + c@ d# 1 = \ flag set?
+            d# 44 COMM+0 + c@ d# 1 = \ flag set?
         until
 
         \ Copy FRAMEBUFFER to RAM_PIC
@@ -37,7 +38,7 @@ h# 6fff constant FRAMEBUFFER \ fb block is at end of RAM_SPRIMG
         until
 
         \ clear fb dump flag
-        d# 0 d# 42 COMM+0 + c!
+        d# 0 d# 44 COMM+0 + c!
     again
 ;
 
