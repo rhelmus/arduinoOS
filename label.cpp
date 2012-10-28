@@ -2,17 +2,6 @@
 #include "label.h"
 #include "utils.h"
 
-CLabel::CLabel(uint8_t x, uint8_t y, const char *t, bool ft)
-    : CWidget(x, y), text(t), flashText(ft), alignment(ALIGN_LEFT)
-{
-    if (ft)
-        setWidth(strlen_P(t));
-    else
-        setWidth(strlen(t));
-
-    setHeight(1);
-}
-
 void CLabel::coreDraw()
 {
     uint8_t x;
@@ -30,9 +19,24 @@ void CLabel::coreDraw()
         putstr(x, getDimensions().y, text);
 }
 
-void CLabel::setText(const char *t, bool ft)
+void CLabel::setAlignment(EAlignment a)
+{
+    alignment = a;
+    GUI.redrawDesktop();
+}
+
+void CLabel::setText(const char *t, bool aw, bool ft)
 {
     text = t;
     flashText = ft;
+
+    if (aw)
+    {
+        if (ft)
+            setWidth(strlen_P(t));
+        else
+            setWidth(strlen(t));
+    }
+
     GUI.redrawDesktop();
 }

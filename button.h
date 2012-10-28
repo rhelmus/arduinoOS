@@ -14,7 +14,9 @@ class CButton : public CWidget
     virtual void coreHandleMouseMove(uint8_t mx, uint8_t my);
 
 public:
-    CButton(uint8_t x, uint8_t y, const char *t, bool ft=false);
+    CButton(void) : text(0), flashText(false), highlight(false) { setHeight(3); }
+
+    void setText(const char *t, bool ft=false);
 };
 
 #endif // BUTTON_H

@@ -6,17 +6,6 @@
 #include <SPI.h>
 #include <GD.h>
 
-CButton::CButton(uint8_t x, uint8_t y, const char *t, bool ft)
-    : CWidget(x, y), text(t), flashText(ft), highlight(false)
-{
-    if (ft)
-        setWidth(strlen_P(t) + 4);
-    else
-        setWidth(strlen(t) + 4);
-
-    setHeight(3);
-}
-
 void CButton::coreDraw()
 {
     const SDimensions dim(getDimensions());
@@ -59,4 +48,17 @@ void CButton::coreHandleMouseMove(uint8_t mx, uint8_t my)
     highlight = inWidget(mx, my);
     if (oldh != highlight)
         GUI.redrawDesktop();
+}
+
+void CButton::setText(const char *t, bool ft)
+{
+    text = t;
+    flashText = ft;
+
+    if (ft)
+        setWidth(strlen_P(t) + 4);
+    else
+        setWidth(strlen(t) + 4);
+
+    GUI.redrawDesktop();
 }

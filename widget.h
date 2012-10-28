@@ -6,12 +6,7 @@
 class CWidget
 {
 public:
-    struct SDimensions
-    {
-        uint8_t x, y, w, h;
-        SDimensions(uint8_t _x, uint8_t _y, uint8_t _w, uint8_t _h)
-            : x(_x), y(_y), w(_w), h(_h) { }
-    };
+    struct SDimensions { uint8_t x, y, w, h; };
 
 private:
     CWidget *nextWidget;
@@ -28,15 +23,14 @@ private:
     virtual void coreHandleMouseMove(uint8_t mx, uint8_t my) { }
 
 protected:
-    CWidget(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
-        : nextWidget(0), parentWindow(0), dim(x, y, w, h), active(false) { }
-    CWidget(uint8_t x, uint8_t y)
-        : nextWidget(0), parentWindow(0), dim(x, y, 0, 0), active(false) { }
-
-    void setWidth(uint8_t w) { dim.w = w; }
-    void setHeight(uint8_t h) { dim.h = h; }
+    CWidget(void) : nextWidget(0), parentWindow(0), active(false) { }
 
 public:
+    void setDimensions(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+    { dim.x = x; dim.y = y; dim.w = w; dim.h = h; }
+    void setSize(uint8_t w, uint8_t h) { dim.w = w; dim.h = h; }
+    void setWidth(uint8_t w) { dim.w = w; }
+    void setHeight(uint8_t h) { dim.h = h; }
     void draw(void) { coreDraw(); }
     bool inWidget(uint8_t x, uint8_t y) const { return coreInWidget(x, y); }
     bool handleMouseClick(EMouseButton button) { return coreHandleMouseClick(button); }

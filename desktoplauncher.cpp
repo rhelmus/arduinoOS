@@ -4,14 +4,6 @@
 #include <SPI.h>
 #include <GD.h>
 
-CDesktopLauncher::CDesktopLauncher(uint8_t x, uint8_t y, uint8_t i,
-                                   prog_uchar *p, const char *n, CWindow *aw)
-    : CWidget(x, y), iconOffset(i), iconPic(p), name(n), appWindow(aw)
-{
-    setWidth(max(strlen(n), ICON_SIZE));
-    setHeight(ICON_SIZE + 1);
-}
-
 void CDesktopLauncher::coreDraw()
 {
     uint8_t i = 0;
@@ -25,8 +17,8 @@ void CDesktopLauncher::coreDraw()
         }
     }
 
-    putstr(center(getDimensions().x, strlen(name), getDimensions().w),
-           getDimensions().y + getDimensions().h-1, name);
+    putstr(center(getDimensions().x, strlen(text), getDimensions().w),
+           getDimensions().y + getDimensions().h-1, text);
 }
 
 bool CDesktopLauncher::coreInWidget(uint8_t x, uint8_t y) const
@@ -39,7 +31,7 @@ bool CDesktopLauncher::coreInWidget(uint8_t x, uint8_t y) const
         if (y < (d.y + d.h - 1)) // Above title?
             return ((x >= left) && (x < (left + ICON_SIZE)));
 
-        const uint8_t len = strlen(name);
+        const uint8_t len = strlen(text);
         left = center(d.x, len, d.w);
         return (x >= left) && (x < (left + len));
     }
@@ -56,4 +48,18 @@ bool CDesktopLauncher::coreHandleMouseClick(EMouseButton button)
     }
 
     return false;
+}
+
+void CDesktopLauncher::setIcon(uint8_t i, prog_uchar *p)
+{
+    iconOffset = i;
+    iconPic = p;
+    GUI.redrawDesktop();
+}
+
+void CDesktopLauncher::setText(const char *t)
+{
+    text = t;
+    setWidth(max(strlen(t), ICON_SIZE));
+    GUI.redrawDesktop();
 }

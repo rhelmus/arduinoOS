@@ -2,31 +2,19 @@
 #include <GD.h>
 
 #include "j1firmware/bg.h"
-#include "button.h"
+#include "calculator.h"
 #include "desktoplauncher.h"
 #include "gfx.h"
 #include "gui.h"
-#include "label.h"
 #include "usbmouse.h"
 #include "utils.h"
-#include "window.h"
 
 CGUI GUI;
 
 namespace
 {
-CWindow window(20, 20, 20, 10);
-CWindow w2(10, 10, 11, 10);
-CWindow w3(30, 25, 20, 10);
-CWindow w4(5, 25, 25, 5);
-
-CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App", &window);
-
-const char buttext[] PROGMEM = "But";
-CButton button(12, 12, buttext, true);
-CLabel label1(11, 15, "label 1");
-CLabel label2(11, 16, 9, "label 2");
-CLabel label3(11, 17, 9, "label 3", CLabel::ALIGN_RIGHT);
+CCalculator calculator;
+CDesktopLauncher launcher;
 
 CWidget *getTopWidgetFromPos(CWidget *botw, uint8_t x, uint8_t y)
 {
@@ -226,16 +214,13 @@ void CGUI::init()
     drawMouse();
     setUSBMouseParser(&mouseParser);
 
-    w2.addChild(&button);
-    w2.addChild(&label1);
-    w2.addChild(&label2);
-    w2.addChild(&label3);
+//    window.setDimensions(10, 10, 20, 20);
+    calculator.setPos(10, 10);
 
-//    activateWindow(&window);
-    openWindow(&w2);
-    openWindow(&w3);
-    openWindow(&w4);
-
+    launcher.setPos(3, 3);
+    launcher.setIcon(CHAR_APP_ICON_START, appIconPic);
+    launcher.setText(/*PSTR*/("App"));
+    launcher.setAppWindow(&calculator);
     addDesktopLauncher(&launcher);
 
     redrawTopBar();

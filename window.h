@@ -15,8 +15,7 @@ class CWindow : public CWidget
 
 public:
     // UNDONE: Make protected
-    CWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
-        : CWidget(x, y, w, h), firstChildWidget(0) { }
+    CWindow(void) : firstChildWidget(0) { }
 
     void addChild(CWidget *w);
     void callback(CWidget *child) { coreCallback(child); }

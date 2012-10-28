@@ -16,11 +16,10 @@ private:
     virtual void coreDraw(void);
 
 public:
-    CLabel(uint8_t x, uint8_t y, const char *t, bool ft=false);
-    CLabel(uint8_t x, uint8_t y, uint8_t w, const char *t, EAlignment a=ALIGN_CENTER,
-           bool ft=false) : CWidget(x, y, w, 1), text(t), flashText(ft), alignment(a) { }
+    CLabel(void) : text(0), flashText(false), alignment(ALIGN_LEFT) { setHeight(1); }
 
-    void setText(const char *t, bool ft=false);
+    void setAlignment(EAlignment a);
+    void setText(const char *t, bool aw=true, bool ft=false);
 };
 
 #endif // LABEL_H
