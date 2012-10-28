@@ -13,3 +13,5 @@ j1firmware/bg.fs
 desktoplauncher.h
 desktoplauncher.cpp
 widget.h
+button.h
+button.cpp

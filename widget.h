@@ -19,10 +19,12 @@ private:
     bool active;
 
     virtual void coreDraw(void) = 0;
+    virtual void coreUpdatePos(const SDimensions &olddim) { }
     virtual bool coreInWidget(uint8_t x, uint8_t y) const
     { return ((x >= dim.x) && (x < (dim.x + dim.w)) &&
               (y >= dim.y) && (y < (dim.y + dim.h))); }
     virtual bool coreHandleMouseClick(EMouseButton button) { return false; }
+    virtual void coreHandleMouseMove(uint8_t mx, uint8_t my) { }
 
 protected:
     CWidget(uint8_t x, uint8_t y, uint8_t w, uint8_t h) :
@@ -37,9 +39,11 @@ public:
     void draw(void) { coreDraw(); }
     bool inWidget(uint8_t x, uint8_t y) const { return coreInWidget(x, y); }
     bool handleMouseClick(EMouseButton button) { return coreHandleMouseClick(button); }
+    void handleMouseMove(uint8_t mx, uint8_t my) { coreHandleMouseMove(mx, my); }
     bool isActive(void) const { return active; }
     void setActive(bool a) { active = a; }
-    void setPos(uint8_t x, uint8_t y) { dim.x = x; dim.y = y; }
+    void setPos(uint8_t x, uint8_t y)
+    { SDimensions od(dim); dim.x = x; dim.y = y; coreUpdatePos(od); }
     const SDimensions &getDimensions(void) const { return dim; }
     CWidget *getNextWidget(void) const { return nextWidget; }
     void setNextWidget(CWidget *w) { nextWidget = w; }

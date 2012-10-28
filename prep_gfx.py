@@ -8,6 +8,10 @@ hdr = open("gfx.h", "w")
 gdprep.dump(hdr, "windowChars", dchr)
 gdprep.dump(hdr, "windowPal", dpal)
 
+(dpic, dchr, dpal) = gdprep.encode(Image.open("button.png"))
+gdprep.dump(hdr, "buttonChars", dchr)
+gdprep.dump(hdr, "buttonPal", dpal)
+
 (dpic, dchr, dpal) = gdprep.encode(Image.open("appicon.png"))
 gdprep.dump(hdr, "appIconPic", dpic)
 gdprep.dump(hdr, "appIconChars", dchr)

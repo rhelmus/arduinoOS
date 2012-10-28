@@ -5,16 +5,19 @@
 
 class CWindow : public CWidget
 {
-    CWindow *next;
+    CWidget *firstChildWidget;
 
     virtual void coreDraw(void);
+    virtual void coreUpdatePos(const SDimensions &olddim);
     virtual bool coreHandleMouseClick(EMouseButton button);
+    virtual void coreHandleMouseMove(uint8_t mx, uint8_t my);
 
 public:
     // UNDONE: Make protected
     CWindow(uint8_t x, uint8_t y, uint8_t w, uint8_t h) :
-        CWidget(x, y, w, h), next(0) { }
+        CWidget(x, y, w, h), firstChildWidget(0) { }
 
+    void addChild(CWidget *w);
     CWindow *getNextWindow(void) const { return static_cast<CWindow *>(getNextWidget()); }
 };
 

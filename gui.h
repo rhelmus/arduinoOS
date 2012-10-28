@@ -23,6 +23,15 @@ enum
     CHAR_WINDOW_CORNER_BOTTOM_RIGHT,
     CHAR_WINDOW_CLOSE,
 
+    CHAR_BUTTON_VERT_LEFT,
+    CHAR_BUTTON_VERT_RIGHT,
+    CHAR_BUTTON_HORIZ_TOP,
+    CHAR_BUTTON_HORIZ_BOTTOM,
+    CHAR_BUTTON_VERT_LEFT_HL,
+    CHAR_BUTTON_VERT_RIGHT_HL,
+    CHAR_BUTTON_HORIZ_TOP_HL,
+    CHAR_BUTTON_HORIZ_BOTTOM_HL,
+
     CHAR_APP_ICON_START
 };
 
@@ -58,7 +67,6 @@ class CGUI
     void initGD(void);
     void drawWindows(void);
     void redrawTopBar(void);
-    void redrawDesktop(void);
     void updateCharScreen(void);
     void drawMouse(void);
     void removeWindow(CWindow *w);
@@ -69,6 +77,7 @@ public:
 
     void init(void);
     void update(void);
+    void redrawDesktop(void);
     void openWindow(CWindow *w);
     void closeWindow(CWindow *w);
     void addDesktopLauncher(CDesktopLauncher *l);

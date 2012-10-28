@@ -2,6 +2,7 @@
 #include <GD.h>
 
 #include "j1firmware/bg.h"
+#include "button.h"
 #include "desktoplauncher.h"
 #include "gfx.h"
 #include "gui.h"
@@ -20,6 +21,7 @@ CWindow w4(5, 25, 25, 5);
 
 CDesktopLauncher launcher(3, 3, CHAR_APP_ICON_START, appIconPic, "App", &window);
 
+CButton button(12, 12, "But");
 
 CWidget *getTopWidgetFromPos(CWidget *botw, uint8_t x, uint8_t y)
 {
@@ -131,6 +133,9 @@ void CGUI::initGD()
     GD.copy(RAM_CHR + (CHAR_WINDOW_VERT_LEFT * 16), windowChars, sizeof(windowChars));
     GD.copy(RAM_PAL + (CHAR_WINDOW_VERT_LEFT * 8), windowPal, sizeof(windowPal));
 
+    GD.copy(RAM_CHR + (CHAR_BUTTON_VERT_LEFT * 16), buttonChars, sizeof(buttonChars));
+    GD.copy(RAM_PAL + (CHAR_BUTTON_VERT_LEFT * 8), buttonPal, sizeof(buttonPal));
+
     GD.copy(RAM_CHR + (CHAR_APP_ICON_START * 16), appIconChars, sizeof(appIconChars));
     GD.copy(RAM_PAL + (CHAR_APP_ICON_START * 8), appIconPal, sizeof(appIconPal));
 
@@ -167,21 +172,6 @@ void CGUI::redrawTopBar()
     itoa(freeRam(), s, 10);
     putstr(1, 0, F("Mem free: ")); putstr(11, 0, s);
 
-    updateCharScreen();
-}
-
-void CGUI::redrawDesktop()
-{
-    GD.fill(FRAMEBUFFER + 64, CHAR_BACKGROUND, 4096 - 64); // Clear desktop
-
-    CWidget *wit = firstDesktopLauncher;
-    while (wit)
-    {
-        wit->draw();
-        wit = wit->getNextWidget();
-    }
-
-    drawWindows();
     updateCharScreen();
 }
 
@@ -231,6 +221,8 @@ void CGUI::init()
     drawMouse();
     setUSBMouseParser(&mouseParser);
 
+    w2.addChild(&button);
+
 //    activateWindow(&window);
     openWindow(&w2);
     openWindow(&w3);
@@ -250,6 +242,21 @@ void CGUI::update()
         updateDelay = curtime + 2000;
         redrawTopBar();
     }
+}
+
+void CGUI::redrawDesktop()
+{
+    GD.fill(FRAMEBUFFER + 64, CHAR_BACKGROUND, 4096 - 64); // Clear desktop
+
+    CWidget *wit = firstDesktopLauncher;
+    while (wit)
+    {
+        wit->draw();
+        wit = wit->getNextWidget();
+    }
+
+    drawWindows();
+    updateCharScreen();
 }
 
 void CGUI::openWindow(CWindow *w)
@@ -294,6 +301,9 @@ void CGUI::addDesktopLauncher(CDesktopLauncher *l)
 
 void CGUI::moveMouse(int8_t dx, int8_t dy)
 {
+    const uint8_t oldmchx = convertPxToChar(mouseX);
+    const uint8_t oldmchy = convertPxToChar(mouseY);
+
     if ((mouseX + dx) < 400)
         mouseX += dx;
     if ((mouseY + dy) < 300)
@@ -301,22 +311,31 @@ void CGUI::moveMouse(int8_t dx, int8_t dy)
 
     drawMouse();
 
-    if (canDrag)
+    const uint8_t mchx = convertPxToChar(mouseX);
+    const uint8_t mchy = convertPxToChar(mouseY);
+
+    if ((oldmchx != mchx) || (oldmchy != mchy))
     {
-        uint8_t newx = convertPxToChar(mouseX) + dragXOffset;
-        uint8_t newy = convertPxToChar(mouseY) + dragYOffset;
-        const CWidget::SDimensions dim(clickedWidget->getDimensions());
+        if (topWindow)
+            topWindow->handleMouseMove(mchx, mchy);
 
-        if ((newx + dim.w - 1) >= 50)
-            newx = dim.x;
-        if ((newy == 0) || ((newy + dim.h - 1) >= 37))
-            newy = dim.y;
-
-        if ((newx != dim.x) || (newy != dim.y))
+        if (canDrag)
         {
-            dragged = true;
-            clickedWidget->setPos(newx, newy);
-            redrawDesktop();
+            uint8_t newx = convertPxToChar(mouseX) + dragXOffset;
+            uint8_t newy = convertPxToChar(mouseY) + dragYOffset;
+            const CWidget::SDimensions dim(clickedWidget->getDimensions());
+
+            if ((newx + dim.w - 1) >= 50)
+                newx = dim.x;
+            if ((newy == 0) || ((newy + dim.h - 1) >= 37))
+                newy = dim.y;
+
+            if ((newx != dim.x) || (newy != dim.y))
+            {
+                dragged = true;
+                clickedWidget->setPos(newx, newy);
+                redrawDesktop();
+            }
         }
     }
 }

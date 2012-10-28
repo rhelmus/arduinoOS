@@ -35,15 +35,44 @@ void CWindow::coreDraw()
         GD.wr(atxy(right, y), CHAR_WINDOW_VERT_RIGHT);
         GD.fill(atxy(getDimensions().x + 1, y), CHAR_TRANSPARENT, getDimensions().w-2);
     }
+
+    CWidget *wit = firstChildWidget;
+    while (wit)
+    {
+        wit->draw();
+        wit = wit->getNextWidget();
+    }
+}
+
+void CWindow::coreUpdatePos(const SDimensions &olddim)
+{
+    const uint8_t dx = getDimensions().x - olddim.x;
+    const uint8_t dy = getDimensions().y - olddim.y;
+
+    CWidget *wit = firstChildWidget;
+    while (wit)
+    {
+        wit->setPos(wit->getDimensions().x + dx, wit->getDimensions().y + dy);
+        wit = wit->getNextWidget();
+    }
 }
 
 bool CWindow::coreHandleMouseClick(EMouseButton button)
 {
-    if (button != BUTTON_LEFT)
-        return false;
-
     const uint8_t mx = convertPxToChar(GUI.getMouseX());
     const uint8_t my = convertPxToChar(GUI.getMouseY());
+
+    // First check child widgets
+    CWidget *wit = firstChildWidget;
+    while (wit)
+    {
+        if (wit->inWidget(mx, my) && wit->handleMouseClick(button))
+            return true;
+        wit = wit->getNextWidget();
+    }
+
+    if (button != BUTTON_LEFT)
+        return false;
 
     // Clicked close button? (top-right corner)
     if ((mx == (getDimensions().x + getDimensions().w - 1)) && (my == getDimensions().y))
@@ -53,4 +82,27 @@ bool CWindow::coreHandleMouseClick(EMouseButton button)
     }
 
     return false;
+}
+
+void CWindow::coreHandleMouseMove(uint8_t mx, uint8_t my)
+{
+    CWidget *wit = firstChildWidget;
+    while (wit)
+    {
+        wit->handleMouseMove(mx, my);
+        wit = wit->getNextWidget();
+    }
+}
+
+void CWindow::addChild(CWidget *w)
+{
+    if (!firstChildWidget)
+        firstChildWidget = w;
+    else
+    {
+        CWidget *wit = firstChildWidget;
+        while (wit->getNextWidget())
+            wit = wit->getNextWidget();
+        wit->setNextWidget(w);
+    }
 }
