@@ -15,3 +15,7 @@ desktoplauncher.cpp
 widget.h
 button.h
 button.cpp
+label.h
+label.cpp
+calculator.h
+calculator.cpp

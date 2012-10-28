@@ -6,6 +6,7 @@
 class CButton : public CWidget
 {
     const char *text;
+    bool flashText;
     bool highlight;
 
     virtual void coreDraw(void);
@@ -13,7 +14,7 @@ class CButton : public CWidget
     virtual void coreHandleMouseMove(uint8_t mx, uint8_t my);
 
 public:
-    CButton(uint8_t x, uint8_t y, const char *t);
+    CButton(uint8_t x, uint8_t y, const char *t, bool ft=false);
 };
 
 #endif // BUTTON_H

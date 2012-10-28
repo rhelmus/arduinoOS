@@ -15,6 +15,7 @@ public:
 
 private:
     CWidget *nextWidget;
+    CWindow *parentWindow;
     SDimensions dim;
     bool active;
 
@@ -27,10 +28,10 @@ private:
     virtual void coreHandleMouseMove(uint8_t mx, uint8_t my) { }
 
 protected:
-    CWidget(uint8_t x, uint8_t y, uint8_t w, uint8_t h) :
-        dim(x, y, w, h), active(false) { }
-    CWidget(uint8_t x, uint8_t y) :
-        dim(x, y, 0, 0), active(false) { }
+    CWidget(uint8_t x, uint8_t y, uint8_t w, uint8_t h)
+        : nextWidget(0), parentWindow(0), dim(x, y, w, h), active(false) { }
+    CWidget(uint8_t x, uint8_t y)
+        : nextWidget(0), parentWindow(0), dim(x, y, 0, 0), active(false) { }
 
     void setWidth(uint8_t w) { dim.w = w; }
     void setHeight(uint8_t h) { dim.h = h; }
@@ -47,6 +48,7 @@ public:
     const SDimensions &getDimensions(void) const { return dim; }
     CWidget *getNextWidget(void) const { return nextWidget; }
     void setNextWidget(CWidget *w) { nextWidget = w; }
+    CWindow *getParentWindow(void) const { return parentWindow; }
 };
 
 #endif // WIDGET_H

@@ -1,14 +1,19 @@
 #include "button.h"
 #include "gui.h"
 #include "utils.h"
+#include "window.h"
 
 #include <SPI.h>
 #include <GD.h>
 
-CButton::CButton(uint8_t x, uint8_t y, const char *t)
-    : CWidget(x, y), text(t), highlight(false)
+CButton::CButton(uint8_t x, uint8_t y, const char *t, bool ft)
+    : CWidget(x, y), text(t), flashText(ft), highlight(false)
 {
-    setWidth(strlen(t) + 4);
+    if (ft)
+        setWidth(strlen_P(t) + 4);
+    else
+        setWidth(strlen(t) + 4);
+
     setHeight(3);
 }
 
@@ -34,12 +39,16 @@ void CButton::coreDraw()
               (highlight) ? CHAR_BUTTON_VERT_RIGHT_HL : CHAR_BUTTON_VERT_RIGHT);
     }
 
-    putstr(dim.x + 2, dim.y + 1, text);
+    if (flashText)
+        putstr_P(dim.x + 2, dim.y + 1, text);
+    else
+        putstr(dim.x + 2, dim.y + 1, text);
 }
 
 bool CButton::coreHandleMouseClick(EMouseButton button)
 {
-    // UNDONE
+    if (getParentWindow())
+        getParentWindow()->callback(this);
 
     return true;
 }
